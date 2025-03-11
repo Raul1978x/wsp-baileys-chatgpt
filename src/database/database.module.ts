@@ -1,9 +1,9 @@
+// src/database/database.module.ts
 import { Module } from '@nestjs/common';
-import { DatabaseService } from './database.service';
-import { DatabaseController } from './database.controller';
+import { PrismaService } from './prisma.service';
 
 @Module({
-  controllers: [DatabaseController],
-  providers: [DatabaseService],
+  providers: [PrismaService],
+  exports: [PrismaService], // Exporta PrismaService para que otros módulos puedan usarlo
 })
 export class DatabaseModule {}

@@ -6,7 +6,8 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "esModuleInterop": true, // Agregado para mejorar la interoperabilidad
+    "target": "ES2021", // Cambiado a ES2021 para mayor compatibilidad
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
@@ -14,8 +15,9 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
+    "noImplicitAny": false, // Puedes cambiar a "true" si deseas más seguridad
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "strict": false // Mantener en "false" para evitar restricciones excesivas
   }
 }
