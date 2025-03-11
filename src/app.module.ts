@@ -7,7 +7,6 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { MessagesModule } from './messages/messages.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { DatabaseModule } from './database/database.module';
-import { PrismaService } from './database/prisma.service';
 
 @Module({
   imports: [
@@ -19,6 +18,6 @@ import { PrismaService } from './database/prisma.service';
     DatabaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [AppService],
 })
 export class AppModule {}

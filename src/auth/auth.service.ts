@@ -25,4 +25,14 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
     };
   }
+  async register(registerDto: any) {
+    const { email, password } = registerDto;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return this.prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+      },
+    });
+  }
 }
