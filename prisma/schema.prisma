@@ -29,31 +29,32 @@ enum UserRole {
 }
 
 model Session {
-  id         String   @id @default(uuid())
-  userId     String?  // Relación opcional
-  user       User?    @relation(fields: [userId], references: [id])
-  sessionKey String   @unique
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String    @id @default(uuid()) // ID único generado automáticamente
+  sessionName String    @unique // Nombre único de la sesión
+  isActive    Boolean   @default(true) // Estado de la sesión
+  createdAt   DateTime  @default(now()) // Fecha de creación
+  updatedAt   DateTime  @updatedAt // Fecha de actualización
+  userId      String? // Relación con el modelo User
+  user        User?     @relation(fields: [userId], references: [id]) // Relación inversa
+  messages    Message[] // Relación con mensajes
 
-  messages   Message[] // Relación inversa con el modelo Message
-
-  @@map("sessions")
+  @@map("sessions") // Mapeo a la tabla "sessions" en la base de datos
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id])
-  chatId    String
-  content   String
-  direction MessageDirection
-  timestamp DateTime @default(now())
+  id        String           @id @default(uuid()) // ID único generado automáticamente
+  sessionId String // Relación con la sesión de WhatsApp
+  session   Session          @relation(fields: [sessionId], references: [id]) // Relación con el modelo Session
+  chatId    String // Identificador del chat (puede ser un número de teléfono o grupo)
+  sender    String // Remitente del mensaje
+  content   String // Contenido del mensaje
+  direction MessageDirection // Dirección del mensaje (enum: INCOMING o OUTGOING)
+  timestamp DateTime         @default(now()) // Marca de tiempo automática
 
-  @@map("messages")
+  @@map("messages") // Mapeo a la tabla "messages" en la base de datos
 }
 
+// Enum para la dirección del mensaje
 enum MessageDirection {
   INCOMING
   OUTGOING
@@ -87,4 +88,11 @@ enum PlanType {
   FREE
   BASIC
   PREMIUM
+}
+
+model WhatsAppSession {
+  id          String   @id @default(uuid())
+  sessionName String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 }

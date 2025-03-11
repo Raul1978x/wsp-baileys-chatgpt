@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -10,12 +11,12 @@ import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
+    DatabaseModule, // Importa DatabaseModule para que PrismaService esté disponible
     AuthModule,
     UsersModule,
     WhatsAppModule,
     MessagesModule,
     SessionsModule,
-    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
