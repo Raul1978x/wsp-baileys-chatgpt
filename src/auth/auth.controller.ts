@@ -1,33 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-// src/auth/auth.controller.ts
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+// auth.controller.ts
+import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
-@ApiTags('Auth') // Etiqueta para agrupar los endpoints de autenticación
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
-
-  @UseGuards(LocalAuthGuard)
-  @Post('login')
-  @ApiOperation({ summary: 'Iniciar sesión' })
-  @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: 'Inicio de sesión exitoso' })
-  @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
+  constructor(private authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Registrar un nuevo usuario' })
-  @ApiBody({ type: RegisterDto })
-  @ApiResponse({ status: 201, description: 'Registro de usuario exitoso' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(@Body() body: { email: string; password: string }) {
+    return this.authService.register(body.email, body.password);
+  }
+
+  @Post('login')
+  async login(@Body() body: { email: string; password: string }) {
+    return this.authService.login(body.email, body.password);
   }
 }
