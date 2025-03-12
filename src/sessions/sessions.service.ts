@@ -1,27 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-// src/sessions/sessions.service.ts
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
 } from '@whiskeysockets/baileys';
+import qrcode from 'qrcode';
 
 @Injectable()
 export class SessionsService {
   private sessions: Map<string, any> = new Map();
+  private qrCodes: Map<string, string> = new Map();
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Crea una nueva sesión en la base de datos.
-   * @param sessionName - Nombre único de la sesión.
-   * @returns La sesión creada.
-   * @throws NotFoundException si la sesión ya existe.
-   */
   async createSession(sessionName: string) {
     const existingSession = await this.prisma.session.findUnique({
       where: { sessionName },
@@ -36,12 +32,6 @@ export class SessionsService {
     });
   }
 
-  /**
-   * Inicia una sesión de WhatsApp.
-   * @param sessionName - Nombre de la sesión a iniciar.
-   * @returns Mensaje indicando que la sesión ha sido iniciada.
-   * @throws NotFoundException si la sesión no existe.
-   */
   async startSession(sessionName: string) {
     const session = await this.prisma.session.findUnique({
       where: { sessionName },
@@ -60,16 +50,47 @@ export class SessionsService {
     );
     const sock = makeWASocket({
       auth: state,
-      printQRInTerminal: true,
+      printQRInTerminal: false,
     });
 
     sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect } = update;
+      const { connection, qr, lastDisconnect } = update;
+
+      if (qr) {
+        const qrCode = await qrcode.toDataURL(qr);
+        this.qrCodes.set(sessionName, qrCode);
+        await this.prisma.session.update({
+          where: { sessionName },
+          data: { qrCode, qrGeneratedAt: new Date() },
+        });
+
+        // Programamos la eliminación automática del QR después de 60 segundos si no se escanea
+        setTimeout(async () => {
+          const currentSession = await this.prisma.session.findUnique({
+            where: { sessionName },
+          });
+          if (currentSession && currentSession.qrCode) {
+            const generatedAt = currentSession.qrGeneratedAt;
+            if (generatedAt) {
+              const elapsed = Date.now() - new Date(generatedAt).getTime();
+              if (elapsed >= 60000) {
+                await this.prisma.session.update({
+                  where: { sessionName },
+                  data: { qrCode: null, qrGeneratedAt: null },
+                });
+                console.log(
+                  `QR code para la sesión ${sessionName} expiró y fue eliminado.`,
+                );
+              }
+            }
+          }
+        }, 60000);
+      }
 
       if (connection === 'open') {
         await this.prisma.session.update({
           where: { sessionName },
-          data: { isActive: true },
+          data: { isActive: true, qrCode: null },
         });
       }
 
@@ -88,19 +109,8 @@ export class SessionsService {
         }
       }
     });
-
-    sock.ev.on('creds.update', saveCreds);
-    this.sessions.set(sessionName, sock);
-
-    return { message: 'Sesión iniciada exitosamente' };
   }
 
-  /**
-   * Detiene una sesión de WhatsApp.
-   * @param sessionName - Nombre de la sesión a detener.
-   * @returns Mensaje indicando que la sesión ha sido detenida.
-   * @throws NotFoundException si la sesión no existe.
-   */
   async stopSession(sessionName: string) {
     const session = await this.prisma.session.findUnique({
       where: { sessionName },
@@ -122,5 +132,19 @@ export class SessionsService {
     }
 
     return { message: 'Sesión detenida exitosamente' };
+  }
+
+  async getQRCode(sessionName: string) {
+    const session = await this.prisma.session.findUnique({
+      where: { sessionName },
+    });
+
+    if (!session || !session.qrCode) {
+      throw new NotFoundException(
+        'No se encontró un código QR para esta sesión',
+      );
+    }
+
+    return { qrCode: session.qrCode };
   }
 }

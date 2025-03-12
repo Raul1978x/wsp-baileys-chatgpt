@@ -1,11 +1,18 @@
-// src/sessions/sessions.controller.ts
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Controller,
   Post,
-  Body,
   Param,
+  Body,
+  Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,39 +20,34 @@ import {
   ApiResponse,
   ApiBody,
   ApiParam,
+  ApiOkResponse,
+  ApiProduces,
 } from '@nestjs/swagger';
 import { SessionsService } from './sessions.service';
 import { CreateSessionDto } from './dto/create-session.dto';
+import { PrismaService } from '../database/prisma.service';
+import { Response } from 'express';
 
-@ApiTags('Sessions') // Agrupa los endpoints bajo "Sessions" en Swagger
+@ApiTags('Sessions')
 @Controller('sessions')
 export class SessionsController {
-  constructor(private readonly sessionsService: SessionsService) {}
+  constructor(
+    private readonly sessionsService: SessionsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  /**
-   * Crear una nueva sesión.
-   * @param createSessionDto - Datos para crear la sesión.
-   * @returns La sesión creada.
-   */
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva sesión' })
-  @ApiBody({ type: CreateSessionDto }) // Define el cuerpo de la solicitud
+  @ApiBody({ type: CreateSessionDto })
   @ApiResponse({
     status: 201,
     description: 'La sesión ha sido creada exitosamente',
-    type: CreateSessionDto,
   })
-  @ApiResponse({ status: 409, description: 'El nombre de la sesión ya existe' })
-  async create(@Body() createSessionDto: CreateSessionDto) {
-    return this.sessionsService.createSession(createSessionDto.sessionName);
+  async create(@Body() body: { sessionName: string }) {
+    return this.sessionsService.createSession(body.sessionName);
   }
 
-  /**
-   * Iniciar una sesión existente.
-   * @param sessionName - Nombre de la sesión a iniciar.
-   * @returns Mensaje indicando que la sesión ha sido iniciada.
-   */
   @Post(':sessionName/start')
   @ApiOperation({ summary: 'Iniciar una sesión existente' })
   @ApiParam({
@@ -57,16 +59,10 @@ export class SessionsController {
     status: 200,
     description: 'La sesión ha sido iniciada exitosamente',
   })
-  @ApiResponse({ status: 404, description: 'Sesión no encontrada' })
   async start(@Param('sessionName') sessionName: string) {
     return this.sessionsService.startSession(sessionName);
   }
 
-  /**
-   * Detener una sesión existente.
-   * @param sessionName - Nombre de la sesión a detener.
-   * @returns Mensaje indicando que la sesión ha sido detenida.
-   */
   @Post(':sessionName/stop')
   @ApiOperation({ summary: 'Detener una sesión existente' })
   @ApiParam({
@@ -78,8 +74,57 @@ export class SessionsController {
     status: 200,
     description: 'La sesión ha sido detenida exitosamente',
   })
-  @ApiResponse({ status: 404, description: 'Sesión no encontrada' })
   async stop(@Param('sessionName') sessionName: string) {
     return this.sessionsService.stopSession(sessionName);
+  }
+
+  // @Get(':sessionName/qr')
+  // @ApiOperation({ summary: 'Obtener el código QR de una sesión' })
+  // @ApiParam({
+  //   name: 'sessionName',
+  //   description: 'Nombre de la sesión',
+  //   example: 'mi-sesion',
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Código QR obtenido exitosamente',
+  // })
+  // async getQR(@Param('sessionName') sessionName: string) {
+  //   return this.sessionsService.getQRCode(sessionName);
+  // }
+  @Get(':sessionName/qr')
+  @ApiProduces('image/png')
+  @ApiOkResponse({
+    description: 'Imagen QR en formato PNG',
+    content: {
+      'image/png': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async getQRCode(
+    @Param('sessionName') sessionName: string,
+    @Res() res: Response,
+  ) {
+    const session = await this.prisma.session.findUnique({
+      where: { sessionName },
+    });
+
+    if (!session || !session.qrCode) {
+      throw new NotFoundException('No se encontró un código QR para esta sesión');
+    }
+
+    // Si el campo contiene el prefijo "data:image/png;base64,", lo eliminamos
+    const base64Data = session.qrCode.replace(/^data:image\/\w+;base64,/, '');
+    const imgBuffer = Buffer.from(base64Data, 'base64');
+
+    res.writeHead(200, {
+      'Content-Type': 'image/png',
+      'Content-Length': imgBuffer.length,
+    });
+    res.end(imgBuffer);
   }
 }

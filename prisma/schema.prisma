@@ -1,4 +1,3 @@
-// Este es el esquema Prisma para PostgreSQL
 generator client {
   provider = "prisma-client-js"
 }
@@ -31,25 +30,28 @@ enum UserRole {
 model Session {
   id          String    @id @default(uuid()) // ID único generado automáticamente
   sessionName String    @unique // Nombre único de la sesión
-  isActive    Boolean   @default(true) // Estado de la sesión
-  createdAt   DateTime  @default(now()) // Fecha de creación
-  updatedAt   DateTime  @updatedAt // Fecha de actualización
-  userId      String? // Relación con el modelo User
+  isActive    Boolean   @default(false) // Estado de la sesión
+  qrCode      String?   // Código QR temporal para iniciar sesión
+  userId      String?   // Relación con el modelo User
   user        User?     @relation(fields: [userId], references: [id]) // Relación inversa
   messages    Message[] // Relación con mensajes
+  createdAt   DateTime  @default(now()) // Fecha de creación
+  updatedAt   DateTime  @updatedAt // Fecha de actualización
+  qrGeneratedAt DateTime? // Nuevo campo para saber cuándo se generó el QR
 
   @@map("sessions") // Mapeo a la tabla "sessions" en la base de datos
 }
 
 model Message {
-  id        String           @id @default(uuid()) // ID único generado automáticamente
-  sessionId String // Relación con la sesión de WhatsApp
-  session   Session          @relation(fields: [sessionId], references: [id]) // Relación con el modelo Session
-  chatId    String // Identificador del chat (puede ser un número de teléfono o grupo)
-  sender    String // Remitente del mensaje
-  content   String // Contenido del mensaje
-  direction MessageDirection // Dirección del mensaje (enum: INCOMING o OUTGOING)
-  timestamp DateTime         @default(now()) // Marca de tiempo automática
+  id         String           @id @default(uuid()) // ID único generado automáticamente
+  sessionId  String           // Relación con la sesión de WhatsApp
+  session    Session          @relation(fields: [sessionId], references: [id]) // Relación con el modelo Session
+  chatId     String           // Identificador del chat (puede ser un número de teléfono o grupo)
+  sender     String           // Remitente del mensaje
+  content    String           // Contenido del mensaje
+  direction  MessageDirection // Dirección del mensaje (enum: INCOMING o OUTGOING)
+  status     MessageStatus    @default(PENDING) // Estado del mensaje
+  timestamp  DateTime         @default(now()) // Marca de tiempo automática
 
   @@map("messages") // Mapeo a la tabla "messages" en la base de datos
 }
@@ -58,6 +60,14 @@ model Message {
 enum MessageDirection {
   INCOMING
   OUTGOING
+}
+
+// Enum para el estado del mensaje
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
 }
 
 model Client {
@@ -88,11 +98,4 @@ enum PlanType {
   FREE
   BASIC
   PREMIUM
-}
-
-model WhatsAppSession {
-  id          String   @id @default(uuid())
-  sessionName String   @unique
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
 }
