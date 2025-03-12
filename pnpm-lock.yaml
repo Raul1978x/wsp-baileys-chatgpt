@@ -46,13 +46,13 @@ importers:
         version: 6.4.1(prisma@6.4.1(typescript@5.8.2))(typescript@5.8.2)
       '@whiskeysockets/baileys':
         specifier: ^6.7.16
-        version: 6.7.16(eslint@9.22.0)(typescript@5.8.2)
+        version: 6.7.16(eslint@9.22.0)(qrcode-terminal@0.12.0)(typescript@5.8.2)
       axios:
         specifier: ^1.8.2
         version: 1.8.2
       baileys:
         specifier: ^6.7.16
-        version: 6.7.16(eslint@9.22.0)(typescript@5.8.2)
+        version: 6.7.16(eslint@9.22.0)(qrcode-terminal@0.12.0)(typescript@5.8.2)
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
@@ -77,6 +77,9 @@ importers:
       pg:
         specifier: ^8.13.3
         version: 8.13.3
+      qrcode-terminal:
+        specifier: ^0.12.0
+        version: 0.12.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -3608,6 +3611,10 @@ packages:
   qoa-format@1.0.1:
     resolution: {integrity: sha512-dMB0Z6XQjdpz/Cw4Rf6RiBpQvUSPCfYlQMWvmuWlWkAT7nDQD29cVZ1SwDUB6DYJSitHENwbt90lqfI+7bvMcw==}
 
+  qrcode-terminal@0.12.0:
+    resolution: {integrity: sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==}
+    hasBin: true
+
   qs@6.13.0:
     resolution: {integrity: sha512-+38qI9SOr8tfZ4QmJNplMUxqjbe7LKvvZgWdExBOmd+egZTtjLB67Gu0HRX3u/XOq7UU2Nx6nsjvS16Z9uwfpg==}
     engines: {node: '>=0.6'}
@@ -5902,7 +5909,7 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@whiskeysockets/baileys@6.7.16(eslint@9.22.0)(typescript@5.8.2)':
+  '@whiskeysockets/baileys@6.7.16(eslint@9.22.0)(qrcode-terminal@0.12.0)(typescript@5.8.2)':
     dependencies:
       '@adiwajshing/keyed-db': 0.2.4
       '@cacheable/node-cache': 1.5.3
@@ -5920,6 +5927,8 @@ snapshots:
       protobufjs: 7.4.0
       uuid: 10.0.0
       ws: 8.18.1
+    optionalDependencies:
+      qrcode-terminal: 0.12.0
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -6201,7 +6210,7 @@ snapshots:
       babel-plugin-jest-hoist: 29.6.3
       babel-preset-current-node-syntax: 1.1.0(@babel/core@7.26.9)
 
-  baileys@6.7.16(eslint@9.22.0)(typescript@5.8.2):
+  baileys@6.7.16(eslint@9.22.0)(qrcode-terminal@0.12.0)(typescript@5.8.2):
     dependencies:
       '@adiwajshing/keyed-db': 0.2.4
       '@cacheable/node-cache': 1.5.3
@@ -6219,6 +6228,8 @@ snapshots:
       protobufjs: 7.4.0
       uuid: 10.0.0
       ws: 8.18.1
+    optionalDependencies:
+      qrcode-terminal: 0.12.0
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -8176,6 +8187,8 @@ snapshots:
   qoa-format@1.0.1:
     dependencies:
       '@thi.ng/bitstream': 2.4.14
+
+  qrcode-terminal@0.12.0: {}
 
   qs@6.13.0:
     dependencies:

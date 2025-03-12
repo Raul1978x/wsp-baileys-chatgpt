@@ -1,49 +1,60 @@
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 // src/sessions/sessions.service.ts
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
 } from '@whiskeysockets/baileys';
-import { Boom } from '@hapi/boom';
-import { PrismaService } from '../database/prisma.service';
-import { CreateSessionDto } from './dto/create-session.dto';
-import { UpdateSessionDto } from './dto/update-session.dto';
 
 @Injectable()
 export class SessionsService {
   private sessions: Map<string, any> = new Map();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  // Iniciar una nueva sesión
-  async create(createSessionDto: CreateSessionDto) {
-    const { sessionName } = createSessionDto;
-
-    // Verificar si la sesión ya existe
+  /**
+   * Crea una nueva sesión en la base de datos.
+   * @param sessionName - Nombre único de la sesión.
+   * @returns La sesión creada.
+   * @throws NotFoundException si la sesión ya existe.
+   */
+  async createSession(sessionName: string) {
     const existingSession = await this.prisma.session.findUnique({
       where: { sessionName },
     });
 
     if (existingSession) {
-      throw new ConflictException('La sesión ya existe');
+      throw new NotFoundException('La sesión ya existe');
     }
 
-    // Crear la sesión en la base de datos
-    const session = await this.prisma.session.create({
-      data: { sessionName, isActive: true },
+    return this.prisma.session.create({
+      data: { sessionName, isActive: false },
+    });
+  }
+
+  /**
+   * Inicia una sesión de WhatsApp.
+   * @param sessionName - Nombre de la sesión a iniciar.
+   * @returns Mensaje indicando que la sesión ha sido iniciada.
+   * @throws NotFoundException si la sesión no existe.
+   */
+  async startSession(sessionName: string) {
+    const session = await this.prisma.session.findUnique({
+      where: { sessionName },
     });
 
-    // Configurar Baileys para la sesión
+    if (!session) {
+      throw new NotFoundException('La sesión no existe');
+    }
+
+    if (this.sessions.has(sessionName)) {
+      return { message: 'La sesión ya está activa' };
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState(
       `./auth/${sessionName}`,
     );
@@ -54,12 +65,26 @@ export class SessionsService {
 
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect } = update;
+
+      if (connection === 'open') {
+        await this.prisma.session.update({
+          where: { sessionName },
+          data: { isActive: true },
+        });
+      }
+
       if (connection === 'close') {
         const shouldReconnect =
-          (lastDisconnect?.error as Boom)?.output?.statusCode !==
+          (lastDisconnect?.error as any)?.output?.statusCode !==
           DisconnectReason.loggedOut;
+
         if (shouldReconnect) {
-          await this.create(createSessionDto); // Intentar reconectar
+          await this.startSession(sessionName);
+        } else {
+          await this.prisma.session.update({
+            where: { sessionName },
+            data: { isActive: false },
+          });
         }
       }
     });
@@ -67,62 +92,35 @@ export class SessionsService {
     sock.ev.on('creds.update', saveCreds);
     this.sessions.set(sessionName, sock);
 
-    return session;
+    return { message: 'Sesión iniciada exitosamente' };
   }
 
-  // Obtener todas las sesiones
-  async findAll() {
-    return this.prisma.session.findMany();
-  }
-
-  // Obtener una sesión por ID
-  async findOne(id: string) {
+  /**
+   * Detiene una sesión de WhatsApp.
+   * @param sessionName - Nombre de la sesión a detener.
+   * @returns Mensaje indicando que la sesión ha sido detenida.
+   * @throws NotFoundException si la sesión no existe.
+   */
+  async stopSession(sessionName: string) {
     const session = await this.prisma.session.findUnique({
-      where: { id },
+      where: { sessionName },
     });
 
     if (!session) {
-      throw new NotFoundException(`Sesión con ID ${id} no encontrada`);
+      throw new NotFoundException('La sesión no existe');
     }
 
-    return session;
-  }
-
-  // Actualizar una sesión
-  async update(id: string, updateSessionDto: UpdateSessionDto) {
-    const session = await this.prisma.session.findUnique({
-      where: { id },
-    });
-
-    if (!session) {
-      throw new NotFoundException(`Sesión con ID ${id} no encontrada`);
-    }
-
-    return this.prisma.session.update({
-      where: { id },
-      data: updateSessionDto,
-    });
-  }
-
-  // Eliminar una sesión
-  async remove(id: string) {
-    const session = await this.prisma.session.findUnique({
-      where: { id },
-    });
-
-    if (!session) {
-      throw new NotFoundException(`Sesión con ID ${id} no encontrada`);
-    }
-
-    // Cerrar la sesión activa
-    const sock = this.sessions.get(session.sessionName);
+    const sock = this.sessions.get(sessionName);
     if (sock) {
       await sock.logout();
-      this.sessions.delete(session.sessionName);
+      this.sessions.delete(sessionName);
+
+      await this.prisma.session.update({
+        where: { sessionName },
+        data: { isActive: false },
+      });
     }
 
-    return this.prisma.session.delete({
-      where: { id },
-    });
+    return { message: 'Sesión detenida exitosamente' };
   }
 }
