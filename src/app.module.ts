@@ -8,7 +8,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { MessagesModule } from './messages/messages.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { DatabaseModule } from './database/database.module';
-import { FlowModule } from './flow/flow.module';
+import { FlowsModule } from './flow/flow.module';
 import { TriggersModule } from './triggers/triggers.module';
 import { ResponsesModule } from './responses/responses.module';
 
@@ -20,7 +20,7 @@ import { ResponsesModule } from './responses/responses.module';
     WhatsAppModule,
     MessagesModule,
     SessionsModule,
-    FlowModule,
+    FlowsModule,
     TriggersModule,
     ResponsesModule,
   ],

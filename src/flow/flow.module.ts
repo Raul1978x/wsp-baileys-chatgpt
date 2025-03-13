@@ -1,12 +1,10 @@
 /* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
-import { Database } from '../database/database.module';
-import { FlowsService } from './flows.service';
-import { FlowsController } from './flows.controller';
+import { FlowsService } from './flow.service';
+import { FlowsController } from './flow.controller';
 
 @Module({
-  imports: [Database],
-providers: [FlowsService],
   controllers: [FlowsController],
+  providers: [FlowsService],
 })
 export class FlowsModule {}

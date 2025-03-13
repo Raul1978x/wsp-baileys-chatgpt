@@ -9,22 +9,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelo de Usuario
 model User {
-  id        String    @id @default(uuid()) // ID único generado automáticamente
-  username  String?   @unique // Nombre de usuario (opcional y único)
-  password  String // Contraseña del usuario
-  email     String    @unique // Correo electrónico único
-  role      UserRole  @default(USER) // Rol del usuario (USER, AGENT, ADMIN)
-  isActive  Boolean   @default(false) // Estado de activación del usuario
-  companyId String? // ID de la empresa asociada (opcional)
-  company   Company?  @relation("UserCompany", fields: [companyId], references: [id]) // Relación con la empresa
-  sessions  Session[] // Sesiones de WhatsApp asociadas
-  flows     Flow[] // Flujos creados por el agente
-  createdAt DateTime  @default(now()) // Fecha de creación
-  updatedAt DateTime @default(now()) @updatedAt 
+  id        String    @id @default(uuid())
+  username  String?   @unique
+  password  String
+  email     String    @unique
+  role      UserRole  @default(USER)
+  isActive  Boolean   @default(false)
+  companyId String?
+  company   Company?  @relation("UserCompany", fields: [companyId], references: [id])
+  sessions  Session[]
+  flows     Flow[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  @@map("users") // Mapeo a la tabla "users" en la base de datos
+  @@map("users")
 }
 
 // Enumeración de Roles de Usuario

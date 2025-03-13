@@ -29,7 +29,10 @@ export class WhatsAppService {
     }
 
     const sock = makeWASocket({
-      auth: session.credentials ? JSON.parse(session.credentials) : undefined,
+      auth:
+        session.credentials && typeof session.credentials === 'string'
+          ? JSON.parse(session.credentials)
+          : undefined,
       printQRInTerminal: true,
     });
 
