@@ -1,8 +1,4 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Controller,
   Post,
@@ -77,21 +73,6 @@ export class SessionsController {
   async stop(@Param('sessionName') sessionName: string) {
     return this.sessionsService.stopSession(sessionName);
   }
-
-  // @Get(':sessionName/qr')
-  // @ApiOperation({ summary: 'Obtener el código QR de una sesión' })
-  // @ApiParam({
-  //   name: 'sessionName',
-  //   description: 'Nombre de la sesión',
-  //   example: 'mi-sesion',
-  // })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Código QR obtenido exitosamente',
-  // })
-  // async getQR(@Param('sessionName') sessionName: string) {
-  //   return this.sessionsService.getQRCode(sessionName);
-  // }
   @Get(':sessionName/qr')
   @ApiProduces('image/png')
   @ApiOkResponse({

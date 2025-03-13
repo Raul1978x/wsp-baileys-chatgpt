@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -12,6 +13,7 @@ async function bootstrap() {
     .setDescription('API para gestionar sesiones de WhatsApp con Baileys')
     .setVersion('1.0')
     .addTag('whatsapp')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
