@@ -1,46 +1,57 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-misused-promises */
-// prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Iniciando seed...');
-
-  // 1. Crear un usuario administrador
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      password: adminPassword,
-    },
+  // Crear una empresa
+  const company = await prisma.company.create({
+    data: { name: 'Empresa Demo', plan: 'PREMIUM', maxAgents: 5 },
   });
-  console.log(`👤 Usuario administrador creado: ${adminUser.email}`);
 
-  // 2. Crear sesiones de WhatsApp simuladas
-  const session1 = await prisma.session.create({
+  // Crear un agente
+  const agent = await prisma.user.create({
     data: {
-      sessionName: 'session1', // Asegúrate de que este campo exista en el modelo Session
-      isActive: true,
+      email: 'agente@example.com',
+      password: 'contraseña123',
+      role: 'AGENT',
+      companyId: company.id,
     },
   });
-  console.log(`📱 Sesión de WhatsApp creada: ${session1.sessionName}`);
 
-  const session2 = await prisma.session.create({
+  // Crear un flujo
+  const flow = await prisma.flow.create({
     data: {
-      sessionName: 'session2', // Asegúrate de que este campo exista en el modelo Session
-      isActive: false,
+      name: 'Flujo de Bienvenida',
+      description: 'Flujo para dar la bienvenida a los usuarios',
+      order: 1,
+      agentId: agent.id,
     },
   });
-  console.log(`📱 Sesión de WhatsApp creada: ${session2.sessionName}`);
+
+  // Crear un trigger
+  await prisma.trigger.create({
+    data: {
+      keyword: 'hola',
+      flowId: flow.id,
+    },
+  });
+
+  // Crear una respuesta
+  await prisma.response.create({
+    data: {
+      content: '¡Hola! ¿Cómo podemos ayudarte hoy?',
+      flowId: flow.id,
+    },
+  });
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error durante la ejecución de la seed:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

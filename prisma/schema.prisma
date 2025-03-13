@@ -1,101 +1,132 @@
+// Configuración del generador de Prisma
 generator client {
   provider = "prisma-client-js"
 }
 
+// Configuración del origen de datos (PostgreSQL)
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// Modelo de Usuario
 model User {
-  id        String    @id @default(uuid())
-  username  String?   @unique
-  password  String
-  email     String    @unique
-  role      UserRole  @default(USER)
-  sessions  Session[]
-  clients   Client[]
-  companies Company[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id        String    @id @default(uuid()) // ID único generado automáticamente
+  username  String?   @unique // Nombre de usuario (opcional y único)
+  password  String // Contraseña del usuario
+  email     String    @unique // Correo electrónico único
+  role      UserRole  @default(USER) // Rol del usuario (USER, AGENT, ADMIN)
+  isActive  Boolean   @default(false) // Estado de activación del usuario
+  companyId String? // ID de la empresa asociada (opcional)
+  company   Company?  @relation("UserCompany", fields: [companyId], references: [id]) // Relación con la empresa
+  sessions  Session[] // Sesiones de WhatsApp asociadas
+  flows     Flow[] // Flujos creados por el agente
+  createdAt DateTime  @default(now()) // Fecha de creación
+  updatedAt DateTime @default(now()) @updatedAt 
 
-  @@map("users")
+  @@map("users") // Mapeo a la tabla "users" en la base de datos
 }
 
+// Enumeración de Roles de Usuario
 enum UserRole {
   USER
+  AGENT
   ADMIN
 }
 
+// Modelo de Empresa
+model Company {
+  id        String   @id @default(uuid()) // ID único generado automáticamente
+  name      String // Nombre de la empresa
+  plan      PlanType // Tipo de plan (FREE, PREMIUM, etc.)
+  maxAgents Int // Máximo número de agentes permitidos
+  isActive  Boolean  @default(true) // Estado de activación de la empresa
+  agents    User[]   @relation("UserCompany") // Relación con los agentes
+  createdAt DateTime @default(now()) // Fecha de creación
+  updatedAt DateTime @updatedAt // Fecha de actualización
+
+  @@map("companies") // Mapeo a la tabla "companies" en la base de datos
+}
+
+// Modelo de Sesión de WhatsApp
 model Session {
-  id          String    @id @default(uuid()) // ID único generado automáticamente
-  sessionName String    @unique // Nombre único de la sesión
-  isActive    Boolean   @default(false) // Estado de la sesión
-  qrCode      String?   // Código QR temporal para iniciar sesión
-  userId      String?   // Relación con el modelo User
-  user        User?     @relation(fields: [userId], references: [id]) // Relación inversa
-  messages    Message[] // Relación con mensajes
-  createdAt   DateTime  @default(now()) // Fecha de creación
-  updatedAt   DateTime  @updatedAt // Fecha de actualización
-  qrGeneratedAt DateTime? // Nuevo campo para saber cuándo se generó el QR
+  id            String    @id @default(uuid()) // ID único generado automáticamente
+  sessionName   String    @unique // Nombre único de la sesión
+  isActive      Boolean   @default(false) // Estado de la sesión
+  qrCode        String? // Código QR temporal
+  credentials   Json? // Credenciales de autenticación
+  userId        String? // ID del usuario asociado (opcional)
+  user          User?     @relation(fields: [userId], references: [id]) // Relación con el usuario
+  messages      Message[] // Mensajes asociados
+  createdAt     DateTime  @default(now()) // Fecha de creación
+  updatedAt     DateTime  @updatedAt // Fecha de actualización
+  qrGeneratedAt DateTime? // Fecha de generación del QR
 
   @@map("sessions") // Mapeo a la tabla "sessions" en la base de datos
 }
 
+// Modelo de Flujo
+model Flow {
+  id          String     @id @default(uuid()) // ID único generado automáticamente
+  name        String // Nombre del flujo
+  description String? // Descripción del flujo (opcional)
+  order       Int // Orden del flujo
+  triggers    Trigger[] // Triggers asociados al flujo
+  responses   Response[] // Respuestas asociadas al flujo
+  agentId     String // ID del agente creador
+  agent       User       @relation(fields: [agentId], references: [id]) // Relación con el agente
+  messages    Message[] // Mensajes asociados al flujo
+  createdAt   DateTime   @default(now()) // Fecha de creación
+  updatedAt   DateTime   @updatedAt // Fecha de actualización
+
+  @@map("flows") // Mapeo a la tabla "flows" en la base de datos
+}
+
+// Modelo de Trigger
+model Trigger {
+  id        String   @id @default(uuid()) // ID único generado automáticamente
+  keyword   String   @unique // Palabra clave única
+  flowId    String // ID del flujo asociado
+  flow      Flow     @relation(fields: [flowId], references: [id]) // Relación con el flujo
+  isActive  Boolean  @default(true) // Estado del trigger
+  createdAt DateTime @default(now()) // Fecha de creación
+  updatedAt DateTime @updatedAt // Fecha de actualización
+
+  @@map("triggers") // Mapeo a la tabla "triggers" en la base de datos
+}
+
+// Modelo de Respuesta
+model Response {
+  id        String   @id @default(uuid()) // ID único generado automáticamente
+  content   String // Contenido de la respuesta
+  flowId    String // ID del flujo asociado
+  flow      Flow     @relation(fields: [flowId], references: [id]) // Relación con el flujo
+  createdAt DateTime @default(now()) // Fecha de creación
+  updatedAt DateTime @updatedAt // Fecha de actualización
+
+  @@map("responses") // Mapeo a la tabla "responses" en la base de datos
+}
+
+// Modelo de Mensaje
 model Message {
-  id         String           @id @default(uuid()) // ID único generado automáticamente
-  sessionId  String           // Relación con la sesión de WhatsApp
-  session    Session          @relation(fields: [sessionId], references: [id]) // Relación con el modelo Session
-  chatId     String           // Identificador del chat (puede ser un número de teléfono o grupo)
-  sender     String           // Remitente del mensaje
-  content    String           // Contenido del mensaje
-  direction  MessageDirection // Dirección del mensaje (enum: INCOMING o OUTGOING)
-  status     MessageStatus    @default(PENDING) // Estado del mensaje
-  timestamp  DateTime         @default(now()) // Marca de tiempo automática
+  id        String   @id @default(uuid()) // ID único generado automáticamente
+  chatId    String // ID del chat
+  sender    String // Remitente del mensaje
+  content   String // Contenido del mensaje
+  flowId    String? // ID del flujo asociado (opcional)
+  flow      Flow?    @relation(fields: [flowId], references: [id]) // Relación con el flujo
+  sessionId String // ID de la sesión asociada
+  session   Session  @relation(fields: [sessionId], references: [id]) // Relación con la sesión
+  createdAt DateTime @default(now()) // Fecha de creación
+  updatedAt DateTime @updatedAt // Fecha de actualización
 
   @@map("messages") // Mapeo a la tabla "messages" en la base de datos
 }
 
-// Enum para la dirección del mensaje
-enum MessageDirection {
-  INCOMING
-  OUTGOING
-}
-
-// Enum para el estado del mensaje
-enum MessageStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-}
-
-model Client {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("clients")
-}
-
-model Company {
-  id        String   @id @default(uuid())
-  name      String
-  plan      PlanType
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("companies")
-}
-
+// Enumeración de Tipos de Plan
 enum PlanType {
   FREE
   BASIC
   PREMIUM
+  ENTERPRISE
 }

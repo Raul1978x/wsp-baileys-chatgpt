@@ -1,30 +1,36 @@
-// src/whatsapp/whatsapp.controller.ts
-import { Controller, Post, Body } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { Controller, Post, Param, Body, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { WhatsAppService } from './whatsapp.service';
-import { StartSessionDto } from './dto/start-session.dto';
-import { SendMessageDto } from './dto/send-message.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { User } from '../database/entities/user.entity';
 
-@ApiTags('WhatsApp') // Etiqueta para agrupar los endpoints de WhatsApp
 @Controller('whatsapp')
+@UseGuards(AuthGuard('jwt'))
 export class WhatsAppController {
-  constructor(private readonly whatsappService: WhatsAppService) {}
+  constructor(private readonly whatsAppService: WhatsAppService) {}
 
-  @Post('start')
-  @ApiOperation({ summary: 'Iniciar una nueva sesión de WhatsApp' })
-  @ApiBody({ type: StartSessionDto })
-  @ApiResponse({ status: 200, description: 'Sesión iniciada exitosamente' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  startSession(@Body() startSessionDto: StartSessionDto) {
-    return this.whatsappService.startSession(startSessionDto);
+  @Post(':sessionName/start')
+  async startSession(
+    @Param('sessionName') sessionName: string,
+    @GetUser() user: User,
+  ) {
+    return this.whatsAppService.startSession(sessionName, user.id);
   }
 
-  @Post('send')
-  @ApiOperation({ summary: 'Enviar un mensaje a través de WhatsApp' })
-  @ApiBody({ type: SendMessageDto })
-  @ApiResponse({ status: 200, description: 'Mensaje enviado exitosamente' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  sendMessage(@Body() sendMessageDto: SendMessageDto) {
-    return this.whatsappService.sendMessage(sendMessageDto);
+  @Post(':sessionName/send')
+  async sendMessage(
+    @Param('sessionName') sessionName: string,
+    @Body('chatId') chatId: string,
+    @Body('message') message: string,
+    @GetUser() user: User,
+  ) {
+    return this.whatsAppService.sendMessage(
+      sessionName,
+      chatId,
+      message,
+      user.id,
+    );
   }
 }
